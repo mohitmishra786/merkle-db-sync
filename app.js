@@ -930,8 +930,14 @@ class MerkleTreeVisualizer {
         this.nextId = 1;
         this.resetComparisonState();
         
+        // Clear the data tables
+        this.updateDataTables();
+        
+        // Clear the tree visualizations
         document.getElementById('source-tree').innerHTML = '';
         document.getElementById('replica-tree').innerHTML = '';
+        
+        // Update statistics to show empty state
         this.updateStats();
         this.clearLog();
         
