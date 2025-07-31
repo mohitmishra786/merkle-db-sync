@@ -588,8 +588,16 @@ class MerkleTreeVisualizer {
     }
 
     identifyChanges() {
+        this.log('Starting detailed change identification with visual trace...', 'info');
+        
+        // Clear previous highlights
+        this.clearAllHighlights();
+        
         const changes = this.findLeafChanges(this.sourceTree, this.replicaTree);
         this.comparisonState.changes = changes;
+        
+        // Show visual trace for each change
+        this.showChangeTrace(changes);
         
         this.log(`Identified ${changes.length} changed leaf nodes:`, 'info');
         changes.forEach(change => {
@@ -597,6 +605,134 @@ class MerkleTreeVisualizer {
         });
         
         document.getElementById('sync-changes').disabled = false;
+    }
+
+    clearAllHighlights() {
+        this.sourceNodes.select('circle').classed('node-trace', false);
+        this.replicaNodes.select('circle').classed('node-trace', false);
+        this.sourceNodes.select('circle').classed('node-different', false);
+        this.replicaNodes.select('circle').classed('node-different', false);
+        this.sourceLinks.select('path').classed('link-trace', false);
+        this.replicaLinks.select('path').classed('link-trace', false);
+    }
+
+    showChangeTrace(changes) {
+        if (changes.length === 0) {
+            this.log('No changes found to trace', 'info');
+            return;
+        }
+
+        this.log('Tracing paths from root to changed leaf nodes...', 'info');
+        
+        changes.forEach((change, index) => {
+            setTimeout(() => {
+                this.traceSingleChange(change, index + 1, changes.length);
+            }, index * 2000); // 2 second delay between each change trace
+        });
+    }
+
+    traceSingleChange(change, changeIndex, totalChanges) {
+        this.log(`Tracing change ${changeIndex}/${totalChanges}: ${change.type} - ${change.description}`, 'info');
+        
+        // Find paths to the changed nodes based on change type
+        let sourcePath = [];
+        let replicaPath = [];
+        
+        switch (change.type) {
+            case 'modified':
+                sourcePath = this.findPathToNode(this.sourceTree, change.sourceData?.id);
+                replicaPath = this.findPathToNode(this.replicaTree, change.replicaData?.id);
+                break;
+            case 'added':
+                sourcePath = this.findPathToNode(this.sourceTree, change.sourceData?.id);
+                // For added items, we don't trace in replica tree
+                break;
+            case 'deleted':
+                replicaPath = this.findPathToNode(this.replicaTree, change.replicaData?.id);
+                // For deleted items, we don't trace in source tree
+                break;
+        }
+        
+        // Highlight the paths step by step
+        if (sourcePath.length > 0) {
+            this.highlightPath(sourcePath, 'source', changeIndex, totalChanges);
+        }
+        if (replicaPath.length > 0) {
+            this.highlightPath(replicaPath, 'replica', changeIndex, totalChanges);
+        }
+        
+        // After tracing, highlight the final leaf node
+        const maxPathLength = Math.max(sourcePath.length, replicaPath.length);
+        setTimeout(() => {
+            this.highlightChangedLeaf(change, changeIndex, totalChanges);
+        }, maxPathLength * 300 + 500); // Wait for path highlighting to complete
+    }
+
+    findPathToNode(root, targetId) {
+        const findPath = (node, targetId, currentPath = []) => {
+            if (!node) return null;
+            
+            // Check if this is the target leaf node
+            if (node.isLeaf && node.data && node.data.id === targetId) {
+                return [...currentPath, node];
+            }
+            
+            // Recursively search children
+            if (node.children) {
+                for (let i = 0; i < node.children.length; i++) {
+                    const childPath = findPath(node.children[i], targetId, [...currentPath, node]);
+                    if (childPath) return childPath;
+                }
+            }
+            
+            return null;
+        };
+        
+        return findPath(root, targetId) || [];
+    }
+
+    highlightPath(path, treeType, changeIndex, totalChanges) {
+        const nodes = this[`${treeType}Nodes`];
+        const links = this[`${treeType}Links`];
+        
+        path.forEach((node, stepIndex) => {
+            setTimeout(() => {
+                // Highlight the node
+                nodes.select('circle').filter(d => d.data === node).classed('node-trace', true);
+                
+                // Highlight the link to this node (if not root)
+                if (stepIndex > 0) {
+                    const parentNode = path[stepIndex - 1];
+                    links.select('path').filter(d => {
+                        return (d.source.data === parentNode && d.target.data === node) ||
+                               (d.target.data === parentNode && d.source.data === node);
+                    }).classed('link-trace', true);
+                }
+                
+                // Log the step
+                const nodeType = node.isLeaf ? 'leaf' : 'internal';
+                const nodeInfo = node.isLeaf ? `(ID: ${node.data.id})` : '';
+                this.log(`  ${treeType} tree: ${nodeType} node ${nodeInfo} - Hash: ${node.hash.substring(0,8)}`, 'info');
+                
+            }, stepIndex * 300); // 300ms delay between each step
+        });
+    }
+
+    highlightChangedLeaf(change, changeIndex, totalChanges) {
+        // Highlight the final changed leaf nodes
+        if (change.sourceData) {
+            this.sourceNodes.select('circle').filter(d => 
+                d.data.isLeaf && d.data.data && d.data.data.id === change.sourceData.id
+            ).classed('node-different', true);
+        }
+        
+        if (change.replicaData) {
+            this.replicaNodes.select('circle').filter(d => 
+                d.data.isLeaf && d.data.data && d.data.data.id === change.replicaData.id
+            ).classed('node-different', true);
+        }
+        
+        this.log(`✓ Completed tracing for change ${changeIndex}/${totalChanges}`, 'success');
     }
 
     findLeafChanges(sourceNode, replicaNode, path = '') {
