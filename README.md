@@ -272,4 +272,4 @@ This is an educational project demonstrating Merkle tree concepts. Feel free to:
 - Report issues or suggest enhancements
 
 ## License
-This project is provided as educational software. Use freely for learning and experimentation purposes. 
+This project is under [MIT LICENSE](LICENSE)
