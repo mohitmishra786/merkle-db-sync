@@ -27,15 +27,20 @@ class MerkleTreeVisualizer {
         document.getElementById('reset').addEventListener('click', () => this.reset());
         
         // Tutorial toggle functionality
-        document.getElementById('tutorial-toggle').addEventListener('click', () => {
-            const content = document.getElementById('tutorial-content');
-            const toggle = document.getElementById('tutorial-toggle');
-            if (content.style.display === 'none') {
-                content.style.display = 'block';
-                toggle.textContent = 'Hide';
+        const tutorialContent = document.getElementById('tutorial-content');
+        const tutorialToggle = document.getElementById('tutorial-toggle');
+        
+        // Set initial state - tutorial content hidden by default
+        tutorialContent.style.display = 'none';
+        tutorialToggle.textContent = 'Show Tutorial';
+        
+        tutorialToggle.addEventListener('click', () => {
+            if (tutorialContent.style.display === 'none') {
+                tutorialContent.style.display = 'block';
+                tutorialToggle.textContent = 'Hide Tutorial';
             } else {
-                content.style.display = 'none';
-                toggle.textContent = 'Show';
+                tutorialContent.style.display = 'none';
+                tutorialToggle.textContent = 'Show Tutorial';
             }
         });
         
