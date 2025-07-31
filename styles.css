@@ -309,7 +309,6 @@ body {
     position: relative;
     display: flex;
     flex-direction: column;
-    min-height: 750px;
 }
 
 .tree-header {
