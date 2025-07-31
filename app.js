@@ -72,12 +72,25 @@ class MerkleTreeVisualizer {
     }
 
     addRow(tableType) {
-        const data = tableType === 'source' ? this.sourceData : this.replicaData;
-        const newItem = { id: this.nextId++, value: `New data ${this.nextId - 1}` };
-        data.push(newItem);
-        
-        this.updateDataTables();
-        this.log(`Added new row to ${tableType} database`, 'success');
+        try {
+            if (tableType !== 'source' && tableType !== 'replica') {
+                throw new Error('Invalid table type. Must be "source" or "replica"');
+            }
+            
+            const data = tableType === 'source' ? this.sourceData : this.replicaData;
+            if (!Array.isArray(data)) {
+                throw new Error(`${tableType} data is not an array`);
+            }
+            
+            const newItem = { id: this.nextId++, value: `New data ${this.nextId - 1}` };
+            data.push(newItem);
+            
+            this.updateDataTables();
+            this.log(`Added new row to ${tableType} database`, 'success');
+            
+        } catch (error) {
+            this.log(`Error adding row to ${tableType} database: ${error.message}`, 'error');
+        }
     }
 
     updateDataTables() {
@@ -118,80 +131,198 @@ class MerkleTreeVisualizer {
     }
 
     removeRow(tableType, index) {
-        const data = tableType === 'source' ? this.sourceData : this.replicaData;
-        const removedItem = data.splice(index, 1)[0];
-        
-        this.updateDataTables();
-        this.log(`Removed row with ID ${removedItem.id} from ${tableType} database`, 'success');
+        try {
+            if (tableType !== 'source' && tableType !== 'replica') {
+                throw new Error('Invalid table type. Must be "source" or "replica"');
+            }
+            
+            const data = tableType === 'source' ? this.sourceData : this.replicaData;
+            if (!Array.isArray(data)) {
+                throw new Error(`${tableType} data is not an array`);
+            }
+            
+            if (index < 0 || index >= data.length) {
+                throw new Error(`Invalid index ${index}. Data length is ${data.length}`);
+            }
+            
+            const removedItem = data.splice(index, 1)[0];
+            
+            this.updateDataTables();
+            this.log(`Removed row with ID ${removedItem.id} from ${tableType} database`, 'success');
+            
+        } catch (error) {
+            this.log(`Error removing row from ${tableType} database: ${error.message}`, 'error');
+        }
     }
 
     hash(data) {
-        // For database replication, we typically hash the value/content, not the ID
-        // This makes more sense as the same content should have the same hash regardless of ID
-        const contentToHash = data.value || JSON.stringify(data);
-        return CryptoJS.SHA256(contentToHash).toString().substring(0, 16);
+        try {
+            if (!data) {
+                throw new Error('Cannot hash null or undefined data');
+            }
+            
+            // For database replication, we typically hash the value/content, not the ID
+            // This makes more sense as the same content should have the same hash regardless of ID
+            const contentToHash = data.value || JSON.stringify(data);
+            
+            if (!contentToHash) {
+                throw new Error('No content to hash');
+            }
+            
+            return CryptoJS.SHA256(contentToHash).toString().substring(0, 16);
+        } catch (error) {
+            this.log(`Error hashing data: ${error.message}`, 'error');
+            throw error;
+        }
     }
 
     buildMerkleTree(data) {
-        if (data.length === 0) return null;
-
-        // Create leaf nodes
-        let leaves = data.map(item => {
-            const hash = this.hash(item);
-            // Debug: log what's being hashed
-            console.log(`Hashing item ID ${item.id}: "${item.value}" -> ${hash}`);
-            return {
-                hash: hash,
-                data: item,
-                children: null,
-                isLeaf: true,
-                level: 0
-            };
-        });
-
-        // Build tree bottom-up
-        let currentLevel = leaves;
-        let level = 0;
-
-        while (currentLevel.length > 1) {
-            level++;
-            const nextLevel = [];
-            
-            for (let i = 0; i < currentLevel.length; i += 2) {
-                const left = currentLevel[i];
-                const right = currentLevel[i + 1] || { hash: '0000000000000000', data: null, children: null, isLeaf: false, level: level - 1 };
-                
-                const parent = {
-                    hash: this.hash(left.hash + right.hash),
-                    data: null,
-                    children: [left, right],
-                    isLeaf: false,
-                    level: level
-                };
-                
-                nextLevel.push(parent);
+        try {
+            if (!Array.isArray(data)) {
+                throw new Error('Data must be an array');
             }
             
-            currentLevel = nextLevel;
-        }
+            if (data.length === 0) return null;
 
-        return currentLevel[0];
+            // Create leaf nodes
+            let leaves = data.map((item, index) => {
+                try {
+                    if (!item || typeof item.id === 'undefined' || typeof item.value === 'undefined') {
+                        throw new Error(`Invalid item at index ${index}: missing id or value`);
+                    }
+                    
+                    const hash = this.hash(item);
+                    // Debug: log what's being hashed
+                    console.log(`Hashing item ID ${item.id}: "${item.value}" -> ${hash}`);
+                    return {
+                        hash: hash,
+                        data: item,
+                        children: null,
+                        isLeaf: true,
+                        level: 0
+                    };
+                } catch (itemError) {
+                    throw new Error(`Error processing item at index ${index}: ${itemError.message}`);
+                }
+            });
+
+            // Build tree bottom-up
+            let currentLevel = leaves;
+            let level = 0;
+
+            while (currentLevel.length > 1) {
+                level++;
+                const nextLevel = [];
+                
+                for (let i = 0; i < currentLevel.length; i += 2) {
+                    try {
+                        const left = currentLevel[i];
+                        const right = currentLevel[i + 1] || { 
+                            hash: '0000000000000000', 
+                            data: null, 
+                            children: null, 
+                            isLeaf: false, 
+                            level: level - 1 
+                        };
+                        
+                        const parent = {
+                            hash: this.hash(left.hash + right.hash),
+                            data: null,
+                            children: [left, right],
+                            isLeaf: false,
+                            level: level
+                        };
+                        
+                        nextLevel.push(parent);
+                    } catch (nodeError) {
+                        throw new Error(`Error creating parent node at level ${level}: ${nodeError.message}`);
+                    }
+                }
+                
+                currentLevel = nextLevel;
+            }
+
+            return currentLevel[0];
+            
+        } catch (error) {
+            this.log(`Error building Merkle tree: ${error.message}`, 'error');
+            throw error;
+        }
     }
 
     buildTrees() {
-        this.sourceTree = this.buildMerkleTree(this.sourceData);
-        this.replicaTree = this.buildMerkleTree(this.replicaData);
-        
-        this.renderTree('source-tree', this.sourceTree, 'source');
-        this.renderTree('replica-tree', this.replicaTree, 'replica');
-        
-        this.updateStats();
-        this.log('Merkle trees built successfully', 'success');
-        
-        // Show hash information for debugging
-        this.logHashInfo();
-        
-        document.getElementById('compare-roots').disabled = false;
+        try {
+            // Validate data before building trees
+            if (!Array.isArray(this.sourceData) || !Array.isArray(this.replicaData)) {
+                throw new Error('Invalid data format: source and replica data must be arrays');
+            }
+            
+            // Check for duplicate IDs in each dataset
+            const sourceIds = this.sourceData.map(item => item.id);
+            const replicaIds = this.replicaData.map(item => item.id);
+            
+            if (new Set(sourceIds).size !== sourceIds.length) {
+                throw new Error('Duplicate IDs found in source data');
+            }
+            if (new Set(replicaIds).size !== replicaIds.length) {
+                throw new Error('Duplicate IDs found in replica data');
+            }
+            
+            // Validate data structure
+            this.sourceData.forEach((item, index) => {
+                if (!item || typeof item.id === 'undefined' || typeof item.value === 'undefined') {
+                    throw new Error(`Invalid item at index ${index} in source data: missing id or value`);
+                }
+            });
+            
+            this.replicaData.forEach((item, index) => {
+                if (!item || typeof item.id === 'undefined' || typeof item.value === 'undefined') {
+                    throw new Error(`Invalid item at index ${index} in replica data: missing id or value`);
+                }
+            });
+            
+            // Build trees with error handling
+            this.sourceTree = this.buildMerkleTree(this.sourceData);
+            if (!this.sourceTree) {
+                throw new Error('Failed to build source Merkle tree');
+            }
+            
+            this.replicaTree = this.buildMerkleTree(this.replicaData);
+            if (!this.replicaTree) {
+                throw new Error('Failed to build replica Merkle tree');
+            }
+            
+            // Render trees with error handling
+            try {
+                this.renderTree('source-tree', this.sourceTree, 'source');
+            } catch (renderError) {
+                this.log(`Error rendering source tree: ${renderError.message}`, 'error');
+                throw new Error(`Failed to render source tree: ${renderError.message}`);
+            }
+            
+            try {
+                this.renderTree('replica-tree', this.replicaTree, 'replica');
+            } catch (renderError) {
+                this.log(`Error rendering replica tree: ${renderError.message}`, 'error');
+                throw new Error(`Failed to render replica tree: ${renderError.message}`);
+            }
+            
+            this.updateStats();
+            this.log('Merkle trees built successfully', 'success');
+            
+            // Show hash information for debugging
+            this.logHashInfo();
+            
+            document.getElementById('compare-roots').disabled = false;
+            
+        } catch (error) {
+            this.log(`Error building trees: ${error.message}`, 'error');
+            document.getElementById('compare-roots').disabled = true;
+            
+            // Clear tree containers on error
+            document.getElementById('source-tree').innerHTML = '<div class="error-message">Failed to build source tree</div>';
+            document.getElementById('replica-tree').innerHTML = '<div class="error-message">Failed to build replica tree</div>';
+        }
     }
 
     logHashInfo() {
@@ -207,62 +338,74 @@ class MerkleTreeVisualizer {
     }
 
     renderTree(containerId, root, treeType) {
-        if (!root) return;
+        try {
+            if (!root) {
+                throw new Error('Cannot render tree: root node is null or undefined');
+            }
 
-        const container = document.getElementById(containerId);
-        container.innerHTML = '';
-        
-        const width = container.clientWidth;
-        const height = container.clientHeight;
-        const margin = { top: 40, right: 40, bottom: 40, left: 40 };
+            const container = document.getElementById(containerId);
+            if (!container) {
+                throw new Error(`Container with ID '${containerId}' not found`);
+            }
+            
+            container.innerHTML = '';
+            
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            
+            if (width <= 0 || height <= 0) {
+                throw new Error(`Invalid container dimensions: ${width}x${height}`);
+            }
+            
+            const margin = { top: 40, right: 40, bottom: 40, left: 40 };
 
-        const svg = d3.select(container)
-            .append('svg')
-            .attr('width', width)
-            .attr('height', height);
+            const svg = d3.select(container)
+                .append('svg')
+                .attr('width', width)
+                .attr('height', height);
 
-        // Add zoom behavior with pan
-        const zoom = d3.zoom()
-            .scaleExtent([0.1, 3])
-            .on('zoom', (event) => {
-                g.attr('transform', event.transform);
-            });
+            // Add zoom behavior with pan
+            const zoom = d3.zoom()
+                .scaleExtent([0.1, 3])
+                .on('zoom', (event) => {
+                    g.attr('transform', event.transform);
+                });
 
-        svg.call(zoom);
+            svg.call(zoom);
 
-        // Add arrow marker for sync visualization
-        svg.append('defs').append('marker')
-            .attr('id', `arrowhead-${treeType}`)
-            .attr('viewBox', '0 -5 10 10')
-            .attr('refX', 8)
-            .attr('refY', 0)
-            .attr('markerWidth', 6)
-            .attr('markerHeight', 6)
-            .attr('orient', 'auto')
-            .append('path')
-            .attr('d', 'M0,-5L10,0L0,5')
-            .attr('fill', '#e74c3c');
+            // Add arrow marker for sync visualization
+            svg.append('defs').append('marker')
+                .attr('id', `arrowhead-${treeType}`)
+                .attr('viewBox', '0 -5 10 10')
+                .attr('refX', 8)
+                .attr('refY', 0)
+                .attr('markerWidth', 6)
+                .attr('markerHeight', 6)
+                .attr('orient', 'auto')
+                .append('path')
+                .attr('d', 'M0,-5L10,0L0,5')
+                .attr('fill', '#e74c3c');
 
-        const g = svg.append('g');
+            const g = svg.append('g');
 
-        const treeLayout = d3.tree()
-            .size([width - margin.left - margin.right, height - margin.top - margin.bottom]);
+            const treeLayout = d3.tree()
+                .size([width - margin.left - margin.right, height - margin.top - margin.bottom]);
 
-        const hierarchy = d3.hierarchy(root);
-        const treeData = treeLayout(hierarchy);
+            const hierarchy = d3.hierarchy(root);
+            const treeData = treeLayout(hierarchy);
 
-        // Center the tree by translating the group
-        const treeWidth = d3.max(treeData.descendants(), d => d.x) - d3.min(treeData.descendants(), d => d.x);
-        const treeHeight = d3.max(treeData.descendants(), d => d.y) - d3.min(treeData.descendants(), d => d.y);
-        
-        const translateX = (width - treeWidth) / 2 - d3.min(treeData.descendants(), d => d.x);
-        const translateY = (height - treeHeight) / 2 - d3.min(treeData.descendants(), d => d.y);
-        
-        // Apply initial transform to center the tree
-        g.attr('transform', `translate(${translateX}, ${translateY})`);
-        
-        // Store the initial transform for reset functionality
-        this[`${treeType}InitialTransform`] = { x: translateX, y: translateY };
+            // Center the tree by translating the group
+            const treeWidth = d3.max(treeData.descendants(), d => d.x) - d3.min(treeData.descendants(), d => d.x);
+            const treeHeight = d3.max(treeData.descendants(), d => d.y) - d3.min(treeData.descendants(), d => d.y);
+            
+            const translateX = (width - treeWidth) / 2 - d3.min(treeData.descendants(), d => d.x);
+            const translateY = (height - treeHeight) / 2 - d3.min(treeData.descendants(), d => d.y);
+            
+            // Apply initial transform to center the tree
+            g.attr('transform', `translate(${translateX}, ${translateY})`);
+            
+            // Store the initial transform for reset functionality
+            this[`${treeType}InitialTransform`] = { x: translateX, y: translateY };
 
         // Create links
         const links = g.selectAll('.link')
@@ -320,6 +463,15 @@ class MerkleTreeVisualizer {
         this[`${treeType}Zoom`] = zoom;
         this[`${treeType}Svg`] = svg;
         this[`${treeType}G`] = g;
+        
+        } catch (error) {
+            this.log(`Error rendering ${treeType} tree: ${error.message}`, 'error');
+            const container = document.getElementById(containerId);
+            if (container) {
+                container.innerHTML = `<div class="error-message">Failed to render ${treeType} tree: ${error.message}</div>`;
+            }
+            throw error;
+        }
     }
 
     updateStats() {
@@ -348,19 +500,22 @@ class MerkleTreeVisualizer {
     }
 
     compareRoots() {
-        if (!this.sourceTree || !this.replicaTree) {
-            this.log('Please build trees first', 'error');
-            return;
-        }
+        try {
+            if (!this.sourceTree || !this.replicaTree) {
+                throw new Error('Please build trees first');
+            }
 
-        this.highlightRoots();
-        
-        if (this.sourceTree.hash === this.replicaTree.hash) {
-            this.log('Root hashes match! No synchronization needed.', 'success');
-        } else {
-            this.log(`Root hashes differ: Source: ${this.sourceTree.hash} vs Replica: ${this.replicaTree.hash}`, 'warning');
-            this.log('Click "Drill Down" to traverse mismatched branches', 'info');
-            document.getElementById('drill-down').disabled = false;
+            this.highlightRoots();
+            
+            if (this.sourceTree.hash === this.replicaTree.hash) {
+                this.log('Root hashes match! No synchronization needed.', 'success');
+            } else {
+                this.log(`Root hashes differ: Source: ${this.sourceTree.hash} vs Replica: ${this.replicaTree.hash}`, 'warning');
+                this.log('Click "Drill Down" to traverse mismatched branches', 'info');
+                document.getElementById('drill-down').disabled = false;
+            }
+        } catch (error) {
+            this.log(`Error comparing roots: ${error.message}`, 'error');
         }
     }
 
@@ -432,48 +587,66 @@ class MerkleTreeVisualizer {
     }
 
     findLeafChanges(sourceNode, replicaNode, path = '') {
-        if (!sourceNode || !replicaNode) return [];
-        
-        if (sourceNode.isLeaf && replicaNode.isLeaf) {
-            if (sourceNode.hash !== replicaNode.hash) {
-                return [{
-                    type: 'modified',
-                    sourceData: sourceNode.data,
-                    replicaData: replicaNode.data,
-                    description: `ID ${sourceNode.data.id}: "${replicaNode.data.value}" → "${sourceNode.data.value}"`,
-                    path
-                }];
-            }
-            return [];
-        }
-        
-        if (sourceNode.isLeaf && !replicaNode.isLeaf) {
-            return [{
-                type: 'added',
-                sourceData: sourceNode.data,
-                description: `Added: ID ${sourceNode.data.id} (${sourceNode.data.value})`,
-                path
-            }];
-        }
-        
-        if (!sourceNode.isLeaf && replicaNode.isLeaf) {
-            return [{
-                type: 'deleted',
-                replicaData: replicaNode.data,
-                description: `Deleted: ID ${replicaNode.data.id} (${replicaNode.data.value})`,
-                path
-            }];
-        }
-        
-        if (!sourceNode.children || !replicaNode.children) return [];
+        // Instead of comparing tree positions, we need to compare actual data by ID
+        // This function should collect all leaf nodes and then compare them properly
         
         const changes = [];
-        for (let i = 0; i < Math.max(sourceNode.children.length, replicaNode.children.length); i++) {
-            const sourceChild = sourceNode.children[i];
-            const replicaChild = replicaNode.children[i];
-            const childPath = path + (i === 0 ? 'L' : 'R');
-            
-            changes.push(...this.findLeafChanges(sourceChild, replicaChild, childPath));
+        
+        // Helper function to collect all leaf nodes from a tree
+        const collectLeaves = (node, leaves = []) => {
+            if (!node) return leaves;
+            if (node.isLeaf) {
+                leaves.push(node);
+            } else if (node.children) {
+                node.children.forEach(child => collectLeaves(child, leaves));
+            }
+            return leaves;
+        };
+        
+        // Collect all leaf nodes from both trees
+        const sourceLeaves = collectLeaves(sourceNode);
+        const replicaLeaves = collectLeaves(replicaNode);
+        
+        // Create maps for easy lookup
+        const sourceMap = new Map(sourceLeaves.map(leaf => [leaf.data.id, leaf]));
+        const replicaMap = new Map(replicaLeaves.map(leaf => [leaf.data.id, leaf]));
+        
+        // Find modified items (same ID, different hash)
+        for (const [id, sourceLeaf] of sourceMap) {
+            const replicaLeaf = replicaMap.get(id);
+            if (replicaLeaf && sourceLeaf.hash !== replicaLeaf.hash) {
+                changes.push({
+                    type: 'modified',
+                    sourceData: sourceLeaf.data,
+                    replicaData: replicaLeaf.data,
+                    description: `ID ${id}: "${replicaLeaf.data.value}" → "${sourceLeaf.data.value}"`,
+                    path: path + 'M'
+                });
+            }
+        }
+        
+        // Find added items (in source but not in replica)
+        for (const [id, sourceLeaf] of sourceMap) {
+            if (!replicaMap.has(id)) {
+                changes.push({
+                    type: 'added',
+                    sourceData: sourceLeaf.data,
+                    description: `Added: ID ${id} (${sourceLeaf.data.value})`,
+                    path: path + 'A'
+                });
+            }
+        }
+        
+        // Find deleted items (in replica but not in source)
+        for (const [id, replicaLeaf] of replicaMap) {
+            if (!sourceMap.has(id)) {
+                changes.push({
+                    type: 'deleted',
+                    replicaData: replicaLeaf.data,
+                    description: `Deleted: ID ${id} (${replicaLeaf.data.value})`,
+                    path: path + 'D'
+                });
+            }
         }
         
         return changes;
@@ -487,18 +660,77 @@ class MerkleTreeVisualizer {
 
         this.log('Starting synchronization from source to replica...', 'info');
         
-        // Simple approach: just copy source data to replica
-        this.replicaData = JSON.parse(JSON.stringify(this.sourceData));
+        let syncedCount = 0;
+        const totalChanges = this.comparisonState.changes.length;
         
-        // Update the data tables to reflect changes
-        this.updateDataTables();
+        // Apply only the identified changes
+        this.comparisonState.changes.forEach((change, index) => {
+            try {
+                switch (change.type) {
+                    case 'modified':
+                        // Find and update the existing item in replica
+                        const existingIndex = this.replicaData.findIndex(item => item.id === change.sourceData.id);
+                        if (existingIndex !== -1) {
+                            this.replicaData[existingIndex].value = change.sourceData.value;
+                            this.log(`Syncing change ${index + 1}: Modified ID ${change.sourceData.id} to "${change.sourceData.value}"`, 'info');
+                        } else {
+                            this.log(`Warning: Could not find item with ID ${change.sourceData.id} in replica for modification`, 'warning');
+                        }
+                        break;
+                        
+                    case 'added':
+                        // Add new item to replica
+                        this.replicaData.push({ ...change.sourceData });
+                        this.log(`Syncing change ${index + 1}: Added ID ${change.sourceData.id} (${change.sourceData.value})`, 'info');
+                        break;
+                        
+                    case 'deleted':
+                        // Remove item from replica
+                        const deleteIndex = this.replicaData.findIndex(item => item.id === change.replicaData.id);
+                        if (deleteIndex !== -1) {
+                            this.replicaData.splice(deleteIndex, 1);
+                            this.log(`Syncing change ${index + 1}: Deleted ID ${change.replicaData.id} (${change.replicaData.value})`, 'info');
+                        } else {
+                            this.log(`Warning: Could not find item with ID ${change.replicaData.id} in replica for deletion`, 'warning');
+                        }
+                        break;
+                        
+                    default:
+                        this.log(`Warning: Unknown change type: ${change.type}`, 'warning');
+                }
+                syncedCount++;
+                
+                // Add a small delay for visual effect
+                setTimeout(() => {
+                    this.updateDataTables();
+                    this.replicaTree = this.buildMerkleTree(this.replicaData);
+                    this.renderTree('replica-tree', this.replicaTree, 'replica');
+                    this.updateStats();
+                }, (index + 1) * 1000);
+                
+            } catch (error) {
+                this.log(`Error syncing change ${index + 1}: ${error.message}`, 'error');
+            }
+        });
         
-        // Rebuild replica tree
-        this.replicaTree = this.buildMerkleTree(this.replicaData);
-        this.renderTree('replica-tree', this.replicaTree, 'replica');
-        this.updateStats();
-        
-        this.log('Synchronization complete! Replica now matches source.', 'success');
+        // Final update after all changes
+        setTimeout(() => {
+            this.updateDataTables();
+            
+            // Handle case where replica becomes empty
+            if (this.replicaData.length === 0) {
+                this.replicaTree = null;
+                document.getElementById('replica-tree').innerHTML = '<div class="info-message">Replica database is empty</div>';
+            } else {
+                this.replicaTree = this.buildMerkleTree(this.replicaData);
+                this.renderTree('replica-tree', this.replicaTree, 'replica');
+            }
+            
+            this.updateStats();
+            
+            const efficiency = totalChanges > 0 ? Math.round(((this.sourceData.length - totalChanges) / this.sourceData.length) * 100) : 0;
+            this.log(`Synchronization complete! Synced ${syncedCount}/${totalChanges} changes, saving ${efficiency}% bandwidth.`, 'success');
+        }, (totalChanges + 1) * 1000);
     }
 
     zoom(treeType, factor) {
