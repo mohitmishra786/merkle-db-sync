@@ -6,347 +6,7 @@
     <title>Merkle Tree Database Replication Visualizer</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-
-        .header {
-            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
-
-        .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-            font-weight: 300;
-        }
-
-        .header p {
-            font-size: 1.1em;
-            opacity: 0.9;
-            line-height: 1.6;
-        }
-
-        .controls {
-            padding: 20px;
-            background: #f8f9fa;
-            border-bottom: 1px solid #e9ecef;
-        }
-
-        .data-section {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        .data-container {
-            background: white;
-            border-radius: 10px;
-            padding: 15px;
-            border: 2px solid #e9ecef;
-        }
-
-        .data-container h3 {
-            margin-bottom: 10px;
-            color: #2c3e50;
-            font-size: 1.2em;
-        }
-
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 10px;
-        }
-
-        .data-table th,
-        .data-table td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-            font-size: 0.9em;
-        }
-
-        .data-table th {
-            background: #f8f9fa;
-            font-weight: 600;
-        }
-
-        .data-table input {
-            width: 100%;
-            border: none;
-            padding: 4px;
-            font-size: 0.9em;
-        }
-
-        .data-table input:focus {
-            outline: 2px solid #007bff;
-            border-radius: 3px;
-        }
-
-        .button-group {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1em;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,123,255,0.4);
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
-            color: white;
-        }
-
-        .btn-success:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(40,167,69,0.4);
-        }
-
-        .btn-warning {
-            background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
-            color: #212529;
-        }
-
-        .btn-warning:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(255,193,7,0.4);
-        }
-
-        .btn-danger {
-            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-            color: white;
-        }
-
-        .btn-danger:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(220,53,69,0.4);
-        }
-
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none !important;
-            box-shadow: none !important;
-        }
-
-        .visualization {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            padding: 20px;
-            min-height: 600px;
-        }
-
-        .tree-container {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 15px;
-            border: 2px solid #e9ecef;
-            position: relative;
-        }
-
-        .tree-container h3 {
-            margin-bottom: 15px;
-            color: #2c3e50;
-            text-align: center;
-            font-size: 1.3em;
-        }
-
-        .tree-svg {
-            width: 100%;
-            height: 500px;
-            background: white;
-            border-radius: 8px;
-            border: 1px solid #dee2e6;
-        }
-
-        .stats {
-            background: #e9ecef;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 10px;
-        }
-
-        .stats h4 {
-            margin-bottom: 10px;
-            color: #495057;
-        }
-
-        .stats p {
-            margin: 5px 0;
-            font-size: 0.9em;
-            color: #6c757d;
-        }
-
-        .log-section {
-            padding: 20px;
-            background: #f8f9fa;
-            border-top: 1px solid #e9ecef;
-        }
-
-        .log-container {
-            background: #2c3e50;
-            color: #ecf0f1;
-            padding: 15px;
-            border-radius: 8px;
-            height: 200px;
-            overflow-y: auto;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9em;
-            line-height: 1.4;
-        }
-
-        .log-entry {
-            margin-bottom: 5px;
-            padding: 3px 0;
-        }
-
-        .log-info { color: #3498db; }
-        .log-success { color: #2ecc71; }
-        .log-warning { color: #f39c12; }
-        .log-error { color: #e74c3c; }
-
-        .node {
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .node:hover {
-            stroke-width: 3px;
-        }
-
-        .node-leaf {
-            fill: #2ecc71;
-            stroke: #27ae60;
-        }
-
-        .node-internal {
-            fill: #3498db;
-            stroke: #2980b9;
-        }
-
-        .node-root {
-            fill: #e74c3c;
-            stroke: #c0392b;
-        }
-
-        .node-highlighted {
-            stroke: #f39c12;
-            stroke-width: 4px;
-            animation: pulse 1s infinite;
-        }
-
-        .node-different {
-            fill: #e74c3c;
-            stroke: #c0392b;
-        }
-
-        .link {
-            fill: none;
-            stroke: #95a5a6;
-            stroke-width: 2px;
-        }
-
-        .link-highlighted {
-            stroke: #f39c12;
-            stroke-width: 4px;
-            animation: pulse 1s infinite;
-        }
-
-        .node-label {
-            font-size: 10px;
-            font-family: 'Courier New', monospace;
-            text-anchor: middle;
-            pointer-events: none;
-            fill: #2c3e50;
-        }
-
-        .tooltip {
-            position: absolute;
-            background: rgba(0,0,0,0.8);
-            color: white;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            pointer-events: none;
-            z-index: 1000;
-            max-width: 300px;
-            word-wrap: break-word;
-        }
-
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.7; }
-            100% { opacity: 1; }
-        }
-
-        .sync-arrow {
-            stroke: #e74c3c;
-            stroke-width: 3px;
-            stroke-dasharray: 10,5;
-            animation: dash 2s linear infinite;
-            fill: none;
-            marker-end: url(#arrowhead);
-        }
-
-        @keyframes dash {
-            to {
-                stroke-dashoffset: -15;
-            }
-        }
-
-        @media (max-width: 1200px) {
-            .visualization {
-                grid-template-columns: 1fr;
-            }
-            
-            .data-section {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
@@ -361,24 +21,32 @@
         <div class="controls">
             <div class="data-section">
                 <div class="data-container">
-                    <h3>Source Database</h3>
+                    <h3>
+                        Source Database
+                        <button class="add-row-btn" id="add-source-row" title="Add new row">+</button>
+                    </h3>
                     <table class="data-table" id="source-table">
                         <thead>
                             <tr>
                                 <th>ID</th>
                                 <th>Value</th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody id="source-tbody"></tbody>
                     </table>
                 </div>
                 <div class="data-container">
-                    <h3>Replica Database</h3>
+                    <h3>
+                        Replica Database
+                        <button class="add-row-btn" id="add-replica-row" title="Add new row">+</button>
+                    </h3>
                     <table class="data-table" id="replica-table">
                         <thead>
                             <tr>
                                 <th>ID</th>
                                 <th>Value</th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody id="replica-tbody"></tbody>
@@ -388,6 +56,7 @@
 
             <div class="button-group">
                 <button class="btn btn-primary" id="generate-data">Generate Sample Data</button>
+                <button class="btn btn-warning" id="create-differences">Create Differences</button>
                 <button class="btn btn-success" id="build-trees">Build Merkle Trees</button>
                 <button class="btn btn-warning" id="compare-roots">Compare Roots</button>
                 <button class="btn btn-warning" id="drill-down" disabled>Drill Down</button>
@@ -398,24 +67,44 @@
         </div>
 
         <div class="visualization">
-            <div class="tree-container">
-                <h3>Source Merkle Tree</h3>
-                <svg class="tree-svg" id="source-tree"></svg>
-                <div class="stats" id="source-stats">
-                    <h4>Source Statistics</h4>
-                    <p>Nodes: <span id="source-nodes">0</span></p>
-                    <p>Height: <span id="source-height">0</span></p>
-                    <p>Root Hash: <span id="source-root-hash">-</span></p>
+            <div class="tree-row">
+                <div class="tree-container">
+                    <div class="tree-header">
+                        <h3>Source Merkle Tree</h3>
+                        <div class="zoom-controls">
+                            <button class="zoom-btn" id="source-zoom-in">+</button>
+                            <button class="zoom-btn" id="source-zoom-out">-</button>
+                            <button class="zoom-btn" id="source-reset-zoom">Reset</button>
+                        </div>
+                    </div>
+                    <div class="tree-svg-container">
+                        <svg class="tree-svg" id="source-tree"></svg>
+                    </div>
+                    <div class="stats" id="source-stats">
+                        <h4>Source Statistics</h4>
+                        <p>Nodes: <span id="source-nodes">0</span></p>
+                        <p>Height: <span id="source-height">0</span></p>
+                        <p>Root Hash: <span id="source-root-hash">-</span></p>
+                    </div>
                 </div>
-            </div>
-            <div class="tree-container">
-                <h3>Replica Merkle Tree</h3>
-                <svg class="tree-svg" id="replica-tree"></svg>
-                <div class="stats" id="replica-stats">
-                    <h4>Replica Statistics</h4>
-                    <p>Nodes: <span id="replica-nodes">0</span></p>
-                    <p>Height: <span id="replica-height">0</span></p>
-                    <p>Root Hash: <span id="replica-root-hash">-</span></p>
+                <div class="tree-container">
+                    <div class="tree-header">
+                        <h3>Replica Merkle Tree</h3>
+                        <div class="zoom-controls">
+                            <button class="zoom-btn" id="replica-zoom-in">+</button>
+                            <button class="zoom-btn" id="replica-zoom-out">-</button>
+                            <button class="zoom-btn" id="replica-reset-zoom">Reset</button>
+                        </div>
+                    </div>
+                    <div class="tree-svg-container">
+                        <svg class="tree-svg" id="replica-tree"></svg>
+                    </div>
+                    <div class="stats" id="replica-stats">
+                        <h4>Replica Statistics</h4>
+                        <p>Nodes: <span id="replica-nodes">0</span></p>
+                        <p>Height: <span id="replica-height">0</span></p>
+                        <p>Root Hash: <span id="replica-root-hash">-</span></p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -428,469 +117,6 @@
 
     <div class="tooltip" id="tooltip" style="display: none;"></div>
 
-    <script>
-        class MerkleTreeVisualizer {
-            constructor() {
-                this.sourceData = [];
-                this.replicaData = [];
-                this.sourceTree = null;
-                this.replicaTree = null;
-                this.comparisonState = {
-                    step: 0,
-                    mismatchedNodes: [],
-                    changes: []
-                };
-                this.currentLevel = 0;
-                
-                this.initializeEventListeners();
-                this.generateSampleData();
-                this.log('System initialized. Ready to demonstrate Merkle tree replication.', 'info');
-            }
-
-            initializeEventListeners() {
-                document.getElementById('generate-data').addEventListener('click', () => this.generateSampleData());
-                document.getElementById('build-trees').addEventListener('click', () => this.buildTrees());
-                document.getElementById('compare-roots').addEventListener('click', () => this.compareRoots());
-                document.getElementById('drill-down').addEventListener('click', () => this.drillDown());
-                document.getElementById('identify-changes').addEventListener('click', () => this.identifyChanges());
-                document.getElementById('sync-changes').addEventListener('click', () => this.syncChanges());
-                document.getElementById('reset').addEventListener('click', () => this.reset());
-            }
-
-            generateSampleData() {
-                this.sourceData = [
-                    { id: 1, value: 'User data for Alice' },
-                    { id: 2, value: 'User data for Bob' },
-                    { id: 3, value: 'User data for Charlie' },
-                    { id: 4, value: 'User data for Diana' },
-                    { id: 5, value: 'User data for Eve' },
-                    { id: 6, value: 'User data for Frank' },
-                    { id: 7, value: 'User data for Grace' },
-                    { id: 8, value: 'User data for Henry' }
-                ];
-
-                // Create replica with some changes
-                this.replicaData = JSON.parse(JSON.stringify(this.sourceData));
-                this.replicaData[2].value = 'Updated data for Charlie'; // Modified
-                this.replicaData[4].value = 'User data for Eve (modified)'; // Modified
-                this.replicaData.push({ id: 9, value: 'New user data for Irene' }); // Added
-
-                this.updateDataTables();
-                this.log('Generated sample data with 3 changes in replica', 'success');
-                this.resetComparisonState();
-            }
-
-            updateDataTables() {
-                this.updateTable('source-tbody', this.sourceData);
-                this.updateTable('replica-tbody', this.replicaData);
-            }
-
-            updateTable(tbodyId, data) {
-                const tbody = document.getElementById(tbodyId);
-                tbody.innerHTML = '';
-                
-                data.forEach(item => {
-                    const row = tbody.insertRow();
-                    const idCell = row.insertCell();
-                    const valueCell = row.insertCell();
-                    
-                    idCell.textContent = item.id;
-                    const input = document.createElement('input');
-                    input.value = item.value;
-                    input.addEventListener('change', (e) => {
-                        item.value = e.target.value;
-                    });
-                    valueCell.appendChild(input);
-                });
-            }
-
-            hash(data) {
-                return CryptoJS.SHA256(JSON.stringify(data)).toString().substring(0, 16);
-            }
-
-            buildMerkleTree(data) {
-                if (data.length === 0) return null;
-
-                // Create leaf nodes
-                let leaves = data.map(item => ({
-                    hash: this.hash(item),
-                    data: item,
-                    children: null,
-                    isLeaf: true,
-                    level: 0
-                }));
-
-                // Build tree bottom-up
-                let currentLevel = leaves;
-                let level = 0;
-
-                while (currentLevel.length > 1) {
-                    level++;
-                    const nextLevel = [];
-                    
-                    for (let i = 0; i < currentLevel.length; i += 2) {
-                        const left = currentLevel[i];
-                        const right = currentLevel[i + 1] || { hash: '0000000000000000', data: null, children: null, isLeaf: false, level: level - 1 };
-                        
-                        const parent = {
-                            hash: this.hash(left.hash + right.hash),
-                            data: null,
-                            children: [left, right],
-                            isLeaf: false,
-                            level: level
-                        };
-                        
-                        nextLevel.push(parent);
-                    }
-                    
-                    currentLevel = nextLevel;
-                }
-
-                return currentLevel[0];
-            }
-
-            buildTrees() {
-                this.sourceTree = this.buildMerkleTree(this.sourceData);
-                this.replicaTree = this.buildMerkleTree(this.replicaData);
-                
-                this.renderTree('source-tree', this.sourceTree, 'source');
-                this.renderTree('replica-tree', this.replicaTree, 'replica');
-                
-                this.updateStats();
-                this.log('Merkle trees built successfully', 'success');
-                
-                document.getElementById('compare-roots').disabled = false;
-            }
-
-            renderTree(containerId, root, treeType) {
-                if (!root) return;
-
-                const container = document.getElementById(containerId);
-                container.innerHTML = '';
-                
-                const width = container.clientWidth;
-                const height = container.clientHeight;
-                const margin = { top: 20, right: 20, bottom: 20, left: 20 };
-
-                const svg = d3.select(container)
-                    .append('svg')
-                    .attr('width', width)
-                    .attr('height', height);
-
-                // Add arrow marker for sync visualization
-                svg.append('defs').append('marker')
-                    .attr('id', 'arrowhead')
-                    .attr('viewBox', '0 -5 10 10')
-                    .attr('refX', 8)
-                    .attr('refY', 0)
-                    .attr('markerWidth', 6)
-                    .attr('markerHeight', 6)
-                    .attr('orient', 'auto')
-                    .append('path')
-                    .attr('d', 'M0,-5L10,0L0,5')
-                    .attr('fill', '#e74c3c');
-
-                const treeLayout = d3.tree()
-                    .size([width - margin.left - margin.right, height - margin.top - margin.bottom]);
-
-                const hierarchy = d3.hierarchy(root);
-                const treeData = treeLayout(hierarchy);
-
-                // Create links
-                const links = svg.selectAll('.link')
-                    .data(treeData.links())
-                    .enter().append('path')
-                    .attr('class', 'link')
-                    .attr('d', d3.linkHorizontal()
-                        .x(d => d.y)
-                        .y(d => d.x));
-
-                // Create nodes
-                const nodes = svg.selectAll('.node')
-                    .data(treeData.descendants())
-                    .enter().append('g')
-                    .attr('class', 'node')
-                    .attr('transform', d => `translate(${d.y},${d.x})`);
-
-                // Add circles to nodes
-                nodes.append('circle')
-                    .attr('r', 8)
-                    .attr('class', d => {
-                        if (d.data.isLeaf) return 'node-leaf';
-                        if (d.data.level === 0) return 'node-root';
-                        return 'node-internal';
-                    });
-
-                // Add labels
-                nodes.append('text')
-                    .attr('class', 'node-label')
-                    .attr('dy', '0.35em')
-                    .attr('x', d => d.children ? -12 : 12)
-                    .attr('text-anchor', d => d.children ? 'end' : 'start')
-                    .text(d => d.data.hash.substring(0, 8));
-
-                // Add tooltips
-                nodes.on('mouseover', (event, d) => {
-                    const tooltip = document.getElementById('tooltip');
-                    let content = `Hash: ${d.data.hash}`;
-                    if (d.data.data) {
-                        content += `<br>ID: ${d.data.data.id}`;
-                        content += `<br>Value: ${d.data.data.value}`;
-                    }
-                    tooltip.innerHTML = content;
-                    tooltip.style.display = 'block';
-                    tooltip.style.left = event.pageX + 10 + 'px';
-                    tooltip.style.top = event.pageY - 10 + 'px';
-                })
-                .on('mouseout', () => {
-                    document.getElementById('tooltip').style.display = 'none';
-                });
-
-                // Store reference for highlighting
-                this[`${treeType}Nodes`] = nodes;
-                this[`${treeType}Links`] = links;
-            }
-
-            updateStats() {
-                if (this.sourceTree) {
-                    document.getElementById('source-nodes').textContent = this.countNodes(this.sourceTree);
-                    document.getElementById('source-height').textContent = this.getTreeHeight(this.sourceTree);
-                    document.getElementById('source-root-hash').textContent = this.sourceTree.hash;
-                }
-                
-                if (this.replicaTree) {
-                    document.getElementById('replica-nodes').textContent = this.countNodes(this.replicaTree);
-                    document.getElementById('replica-height').textContent = this.getTreeHeight(this.replicaTree);
-                    document.getElementById('replica-root-hash').textContent = this.replicaTree.hash;
-                }
-            }
-
-            countNodes(node) {
-                if (!node) return 0;
-                return 1 + (node.children ? node.children.reduce((sum, child) => sum + this.countNodes(child), 0) : 0);
-            }
-
-            getTreeHeight(node) {
-                if (!node) return 0;
-                if (!node.children) return 0;
-                return 1 + Math.max(...node.children.map(child => this.getTreeHeight(child)));
-            }
-
-            compareRoots() {
-                if (!this.sourceTree || !this.replicaTree) {
-                    this.log('Please build trees first', 'error');
-                    return;
-                }
-
-                this.highlightRoots();
-                
-                if (this.sourceTree.hash === this.replicaTree.hash) {
-                    this.log('Root hashes match! No synchronization needed.', 'success');
-                } else {
-                    this.log(`Root hashes differ: Source: ${this.sourceTree.hash} vs Replica: ${this.replicaTree.hash}`, 'warning');
-                    this.log('Drilling down to find differences...', 'info');
-                    document.getElementById('drill-down').disabled = false;
-                }
-            }
-
-            highlightRoots() {
-                // Highlight root nodes
-                this.sourceNodes.select('circle').classed('node-highlighted', d => d.data.level === 0);
-                this.replicaNodes.select('circle').classed('node-highlighted', d => d.data.level === 0);
-            }
-
-            drillDown() {
-                this.currentLevel++;
-                const mismatched = this.findMismatchedNodes(this.sourceTree, this.replicaTree, this.currentLevel);
-                
-                if (mismatched.length > 0) {
-                    this.highlightMismatchedNodes(mismatched);
-                    this.log(`Found ${mismatched.length} mismatched nodes at level ${this.currentLevel}`, 'warning');
-                    document.getElementById('identify-changes').disabled = false;
-                } else {
-                    this.log('No more mismatches found at this level', 'info');
-                }
-            }
-
-            findMismatchedNodes(sourceNode, replicaNode, targetLevel, path = '') {
-                if (!sourceNode || !replicaNode) return [];
-                
-                if (sourceNode.level === targetLevel) {
-                    return sourceNode.hash !== replicaNode.hash ? [{ source: sourceNode, replica: replicaNode, path }] : [];
-                }
-                
-                if (!sourceNode.children || !replicaNode.children) return [];
-                
-                const mismatched = [];
-                for (let i = 0; i < Math.max(sourceNode.children.length, replicaNode.children.length); i++) {
-                    const sourceChild = sourceNode.children[i];
-                    const replicaChild = replicaNode.children[i];
-                    const childPath = path + (i === 0 ? 'L' : 'R');
-                    
-                    mismatched.push(...this.findMismatchedNodes(sourceChild, replicaChild, targetLevel, childPath));
-                }
-                
-                return mismatched;
-            }
-
-            highlightMismatchedNodes(mismatched) {
-                // Clear previous highlights
-                this.sourceNodes.select('circle').classed('node-different', false);
-                this.replicaNodes.select('circle').classed('node-different', false);
-                
-                // Highlight mismatched nodes
-                mismatched.forEach(({ source, replica }) => {
-                    this.sourceNodes.select('circle').filter(d => d.data === source).classed('node-different', true);
-                    this.replicaNodes.select('circle').filter(d => d.data === replica).classed('node-different', true);
-                });
-            }
-
-            identifyChanges() {
-                const changes = this.findLeafChanges(this.sourceTree, this.replicaTree);
-                this.comparisonState.changes = changes;
-                
-                this.log(`Identified ${changes.length} changed leaf nodes:`, 'info');
-                changes.forEach(change => {
-                    this.log(`- ${change.type}: ${change.description}`, 'warning');
-                });
-                
-                document.getElementById('sync-changes').disabled = false;
-            }
-
-            findLeafChanges(sourceNode, replicaNode, path = '') {
-                if (!sourceNode || !replicaNode) return [];
-                
-                if (sourceNode.isLeaf && replicaNode.isLeaf) {
-                    if (sourceNode.hash !== replicaNode.hash) {
-                        return [{
-                            type: 'modified',
-                            sourceData: sourceNode.data,
-                            replicaData: replicaNode.data,
-                            description: `ID ${sourceNode.data.id}: "${sourceNode.data.value}" → "${replicaNode.data.value}"`,
-                            path
-                        }];
-                    }
-                    return [];
-                }
-                
-                if (sourceNode.isLeaf && !replicaNode.isLeaf) {
-                    return [{
-                        type: 'deleted',
-                        sourceData: sourceNode.data,
-                        description: `Deleted: ID ${sourceNode.data.id}`,
-                        path
-                    }];
-                }
-                
-                if (!sourceNode.isLeaf && replicaNode.isLeaf) {
-                    return [{
-                        type: 'added',
-                        replicaData: replicaNode.data,
-                        description: `Added: ID ${replicaNode.data.id}`,
-                        path
-                    }];
-                }
-                
-                if (!sourceNode.children || !replicaNode.children) return [];
-                
-                const changes = [];
-                for (let i = 0; i < Math.max(sourceNode.children.length, replicaNode.children.length); i++) {
-                    const sourceChild = sourceNode.children[i];
-                    const replicaChild = replicaNode.children[i];
-                    const childPath = path + (i === 0 ? 'L' : 'R');
-                    
-                    changes.push(...this.findLeafChanges(sourceChild, replicaChild, childPath));
-                }
-                
-                return changes;
-            }
-
-            syncChanges() {
-                if (!this.comparisonState.changes.length) {
-                    this.log('No changes to sync', 'info');
-                    return;
-                }
-
-                this.log('Starting synchronization...', 'info');
-                
-                // Simulate syncing each change
-                this.comparisonState.changes.forEach((change, index) => {
-                    setTimeout(() => {
-                        this.log(`Syncing change ${index + 1}: ${change.description}`, 'success');
-                        
-                        // Update replica data
-                        if (change.type === 'modified') {
-                            const replicaItem = this.replicaData.find(item => item.id === change.sourceData.id);
-                            if (replicaItem) {
-                                replicaItem.value = change.sourceData.value;
-                            }
-                        } else if (change.type === 'deleted') {
-                            this.replicaData = this.replicaData.filter(item => item.id !== change.sourceData.id);
-                        } else if (change.type === 'added') {
-                            this.replicaData.push(change.replicaData);
-                        }
-                        
-                        // Rebuild replica tree
-                        this.replicaTree = this.buildMerkleTree(this.replicaData);
-                        this.renderTree('replica-tree', this.replicaTree, 'replica');
-                        this.updateStats();
-                        
-                        if (index === this.comparisonState.changes.length - 1) {
-                            this.log('Synchronization complete!', 'success');
-                            this.log(`Synced ${this.comparisonState.changes.length} changes, saving bandwidth`, 'info');
-                        }
-                    }, index * 1000);
-                });
-            }
-
-            reset() {
-                this.sourceData = [];
-                this.replicaData = [];
-                this.sourceTree = null;
-                this.replicaTree = null;
-                this.resetComparisonState();
-                
-                document.getElementById('source-tree').innerHTML = '';
-                document.getElementById('replica-tree').innerHTML = '';
-                this.updateStats();
-                this.clearLog();
-                
-                this.log('System reset. Ready for new demonstration.', 'info');
-            }
-
-            resetComparisonState() {
-                this.comparisonState = {
-                    step: 0,
-                    mismatchedNodes: [],
-                    changes: []
-                };
-                this.currentLevel = 0;
-                
-                // Reset button states
-                document.getElementById('compare-roots').disabled = true;
-                document.getElementById('drill-down').disabled = true;
-                document.getElementById('identify-changes').disabled = true;
-                document.getElementById('sync-changes').disabled = true;
-            }
-
-            log(message, type = 'info') {
-                const logContainer = document.getElementById('log-container');
-                const entry = document.createElement('div');
-                entry.className = `log-entry log-${type}`;
-                entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-                logContainer.appendChild(entry);
-                logContainer.scrollTop = logContainer.scrollHeight;
-            }
-
-            clearLog() {
-                document.getElementById('log-container').innerHTML = '';
-            }
-        }
-
-        // Initialize the visualizer when the page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            new MerkleTreeVisualizer();
-        });
-    </script>
+    <script src="app.js"></script>
 </body>
 </html> 
