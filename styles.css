@@ -39,6 +39,90 @@ body {
     line-height: 1.6;
 }
 
+.tutorial {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 10px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.tutorial-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.tutorial h3 {
+    margin: 0;
+    color: #495057;
+    font-size: 1.2em;
+}
+
+.tutorial-toggle {
+    background: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 5px 10px;
+    font-size: 0.8em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.tutorial-toggle:hover {
+    background: #5a6268;
+}
+
+.tutorial-content {
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.tutorial-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.step {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 8px 0;
+}
+
+.step-number {
+    background: #007bff;
+    color: white;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.9em;
+    flex-shrink: 0;
+}
+
+.step-text {
+    color: #495057;
+    font-size: 0.95em;
+    line-height: 1.4;
+}
+
+.tutorial-tip {
+    margin-top: 15px;
+    padding: 10px;
+    background: #d1ecf1;
+    border: 1px solid #bee5eb;
+    border-radius: 5px;
+    color: #0c5460;
+    font-size: 0.9em;
+}
+
 .controls {
     padding: 20px;
     background: #f8f9fa;
@@ -371,6 +455,34 @@ body {
     stroke: #c0392b;
 }
 
+.node-trace {
+    fill: #f39c12;
+    stroke: #e67e22;
+    stroke-width: 3px;
+    animation: tracePulse 1s infinite;
+}
+
+.link-trace {
+    stroke: #f39c12;
+    stroke-width: 4px;
+    animation: tracePulse 1s infinite;
+}
+
+@keyframes tracePulse {
+    0% {
+        opacity: 1;
+        stroke-width: 3px;
+    }
+    50% {
+        opacity: 0.7;
+        stroke-width: 4px;
+    }
+    100% {
+        opacity: 1;
+        stroke-width: 3px;
+    }
+}
+
 .link {
     fill: none;
     stroke: #95a5a6;
@@ -423,6 +535,44 @@ body {
     to {
         stroke-dashoffset: -15;
     }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.tutorial {
+    animation: fadeIn 0.5s ease-out;
+}
+
+.step {
+    transition: all 0.3s ease;
+}
+
+.step:hover {
+    background: rgba(0, 123, 255, 0.1);
+    border-radius: 5px;
+    padding-left: 10px;
+}
+
+.btn {
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.node {
+    transition: all 0.3s ease;
 }
 
 @media (max-width: 1200px) {
