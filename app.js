@@ -26,6 +26,19 @@ class MerkleTreeVisualizer {
         document.getElementById('sync-changes').addEventListener('click', () => this.syncChanges());
         document.getElementById('reset').addEventListener('click', () => this.reset());
         
+        // Tutorial toggle functionality
+        document.getElementById('tutorial-toggle').addEventListener('click', () => {
+            const content = document.getElementById('tutorial-content');
+            const toggle = document.getElementById('tutorial-toggle');
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                toggle.textContent = 'Hide';
+            } else {
+                content.style.display = 'none';
+                toggle.textContent = 'Show';
+            }
+        });
+        
         // Add row buttons
         document.getElementById('add-source-row').addEventListener('click', () => this.addRow('source'));
         document.getElementById('add-replica-row').addEventListener('click', () => this.addRow('replica'));
@@ -700,12 +713,15 @@ class MerkleTreeVisualizer {
                 }
                 syncedCount++;
                 
-                // Add a small delay for visual effect
+                // Add a small delay for visual effect and highlight the change
                 setTimeout(() => {
                     this.updateDataTables();
                     this.replicaTree = this.buildMerkleTree(this.replicaData);
                     this.renderTree('replica-tree', this.replicaTree, 'replica');
                     this.updateStats();
+                    
+                    // Highlight the synced change
+                    this.log(`✓ ${change.description}`, 'success');
                 }, (index + 1) * 1000);
                 
             } catch (error) {
