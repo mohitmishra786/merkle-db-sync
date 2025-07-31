@@ -126,20 +126,28 @@ class MerkleTreeVisualizer {
     }
 
     hash(data) {
-        return CryptoJS.SHA256(JSON.stringify(data)).toString().substring(0, 16);
+        // For database replication, we typically hash the value/content, not the ID
+        // This makes more sense as the same content should have the same hash regardless of ID
+        const contentToHash = data.value || JSON.stringify(data);
+        return CryptoJS.SHA256(contentToHash).toString().substring(0, 16);
     }
 
     buildMerkleTree(data) {
         if (data.length === 0) return null;
 
         // Create leaf nodes
-        let leaves = data.map(item => ({
-            hash: this.hash(item),
-            data: item,
-            children: null,
-            isLeaf: true,
-            level: 0
-        }));
+        let leaves = data.map(item => {
+            const hash = this.hash(item);
+            // Debug: log what's being hashed
+            console.log(`Hashing item ID ${item.id}: "${item.value}" -> ${hash}`);
+            return {
+                hash: hash,
+                data: item,
+                children: null,
+                isLeaf: true,
+                level: 0
+            };
+        });
 
         // Build tree bottom-up
         let currentLevel = leaves;
@@ -180,7 +188,22 @@ class MerkleTreeVisualizer {
         this.updateStats();
         this.log('Merkle trees built successfully', 'success');
         
+        // Show hash information for debugging
+        this.logHashInfo();
+        
         document.getElementById('compare-roots').disabled = false;
+    }
+
+    logHashInfo() {
+        this.log('Hash Information:', 'info');
+        this.sourceData.forEach(item => {
+            const hash = this.hash(item);
+            this.log(`  Source ID ${item.id}: "${item.value}" -> ${hash}`, 'info');
+        });
+        this.replicaData.forEach(item => {
+            const hash = this.hash(item);
+            this.log(`  Replica ID ${item.id}: "${item.value}" -> ${hash}`, 'info');
+        });
     }
 
     renderTree(containerId, root, treeType) {
